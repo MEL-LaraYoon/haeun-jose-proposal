@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>haeun_jose_proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    width: 100vw;
+    height: 100vh;
+    background: #fafafa;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .main {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+  }
+
+  .question {
+    font-size: clamp(1.6rem, 5vw, 2.8rem);
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 3rem;
+    letter-spacing: -0.02em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translate(-50%, calc(-50% + 20px)); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+
+  .btn-yes {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    border: none;
+    border-radius: 50px;
+    background: #1a1a1a;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-yes:hover {
+    transform: scale(1.08);
+    background: #e8394d;
+    box-shadow: 0 8px 30px rgba(232, 57, 77, 0.3);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-no {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    border: 2px solid #ccc;
+    border-radius: 50px;
+    background: #fff;
+    color: #999;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: left 0.15s ease, top 0.15s ease, transform 0.15s ease, opacity 0.3s ease;
+  }
+
+  .btn-no.escaping {
+    position: absolute;
+    z-index: 10;
+  }
+
+  .celebration {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    z-index: 100;
+  }
+
+  .celebration.active { display: flex; }
+
+  .celebration-text {
+    font-size: clamp(1.4rem, 4vw, 2.4rem);
+    font-weight: 700;
+    color: #1a1a1a;
+    text-align: center;
+    padding: 0 1rem;
+    opacity: 0;
+    animation: celebFade 1s ease 0.5s forwards;
+  }
+
+  .celebration-heart {
+    font-size: 4rem;
+    opacity: 0;
+    animation: celebFade 0.6s ease 0.1s forwards;
+  }
+
+  @keyframes celebFade {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  canvas#confetti {
+    position: absolute;
+    inset: 0;
+    z-index: 101;
+    pointer-events: none;
+  }
+
+  body::before {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,57,77,0.04) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="main" id="main">
+  <div class="question">평생 나랑 살자. 어때.</div>
+  <div class="btn-row" id="btnRow">
+    <button class="btn-yes" id="yesBtn" onclick="sayYes()">좋아 ❤️</button>
+    <button class="btn-no" id="noBtn">싫어</button>
+  </div>
+</div>
+
+<div class="celebration" id="celebration">
+  <div class="celebration-heart">❤️</div>
+  <div class="celebration-text">웅 호세 알라뷰 쪽 😘</div>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+  const noBtn = document.getElementById('noBtn');
+  const yesBtn = document.getElementById('yesBtn');
+  let escapeCount = 0;
+
+  const phrases = [
+    '싫어', '진짜로?', '다시 생각해봐', '정말?',
+    '한번만 더', '에이~', '그럴리가', '불가능',
+    '못 누르지?', '나 슬퍼..', '😢', '제발~',
+    '심쿵할걸?', '후회한다?', '찬스 한번 더', '눈 감고 눌러봐',
+    '좋아 누르자~', '거의 다 왔어', '마지막 기회!', '항복해~',
+    '나 삐짐', '🥺'
+  ];
+
+  function escapeNo(e) {
+    if (e) e.preventDefault();
+    escapeCount++;
+
+    // First escape: move button out of .main into body
+    if (!noBtn.classList.contains('escaping')) {
+      noBtn.classList.add('escaping');
+      document.body.appendChild(noBtn);
+    }
+
+    var w = document.documentElement.clientWidth;
+    var h = document.documentElement.clientHeight;
+    var pad = 20;
+    var btnW = 130;
+    var btnH = 50;
+
+    var randX = pad + Math.floor(Math.random() * Math.max(10, w - btnW - pad * 2));
+    var randY = pad + Math.floor(Math.random() * Math.max(10, h - btnH - pad * 2));
+
+    noBtn.style.left = randX + 'px';
+    noBtn.style.top = randY + 'px';
+
+    var scale = Math.max(0.5, 1 - escapeCount * 0.03);
+    noBtn.style.transform = 'scale(' + scale + ')';
+
+    if (escapeCount < phrases.length) {
+      noBtn.textContent = phrases[escapeCount];
+    } else {
+      noBtn.style.opacity = '0';
+      noBtn.style.pointerEvents = 'none';
+    }
+  }
+
+  noBtn.addEventListener('mouseenter', escapeNo);
+  noBtn.addEventListener('touchstart', escapeNo, { passive: false });
+  noBtn.addEventListener('click', escapeNo);
+
+  function sayYes() {
+    document.getElementById('celebration').classList.add('active');
+    noBtn.style.display = 'none';
+    launchConfetti();
+  }
+
+  function launchConfetti() {
+    var canvas = document.getElementById('confetti');
+    var ctx = canvas.getContext('2d');
+    canvas.width = document.documentElement.clientWidth;
+    canvas.height = document.documentElement.clientHeight;
+
+    var hearts = [];
+    var colors = ['#e8394d', '#ff6b81', '#ff4757', '#f8a5b6', '#c44569', '#e17055'];
+
+    function createHeart() {
+      return {
+        x: Math.random() * canvas.width,
+        y: canvas.height + 20,
+        size: Math.random() * 14 + 8,
+        speedY: -(Math.random() * 4 + 3),
+        speedX: (Math.random() - 0.5) * 2,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        opacity: 1,
+        fade: Math.random() * 0.005 + 0.003
+      };
+    }
+
+    function drawHeart(h) {
+      ctx.save();
+      ctx.translate(h.x, h.y);
+      ctx.rotate(h.rotation);
+      ctx.scale(h.size / 15, h.size / 15);
+      ctx.globalAlpha = h.opacity;
+      ctx.fillStyle = h.color;
+      ctx.beginPath();
+      ctx.moveTo(0, -5);
+      ctx.bezierCurveTo(-7, -15, -15, -5, 0, 8);
+      ctx.bezierCurveTo(15, -5, 7, -15, 0, -5);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    var frame = 0;
+    function animate() {
+      frame++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (frame < 200) {
+        var count = frame < 60 ? 8 : 3;
+        for (var i = 0; i < count; i++) hearts.push(createHeart());
+      }
+
+      for (var i = hearts.length - 1; i >= 0; i--) {
+        var h = hearts[i];
+        h.y += h.speedY;
+        h.x += h.speedX;
+        h.rotation += h.rotationSpeed;
+        h.speedY += 0.02;
+        h.opacity -= h.fade;
+        if (h.opacity <= 0) { hearts.splice(i, 1); continue; }
+        drawHeart(h);
+      }
+
+      if (frame < 400 || hearts.length > 0) requestAnimationFrame(animate);
+    }
+    animate();
+  }
+</script>
+
+</body>
+</html>
